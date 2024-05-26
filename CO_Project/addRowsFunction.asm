@@ -101,17 +101,75 @@ main PROC
     CONVERT 0,0,index
     mov bl, index
     mov state[bx], 29h            
+    
+    CONVERT 1,0,index
+    mov bl, index
+    mov state[bx], 29h            
+    
+    CONVERT 2,0,index
+    mov bl, index
+    mov state[bx], 29h            
+    
+    CONVERT 3,0,index
+    mov bl, index
+    mov state[bx], 29h
+    
+    CONVERT 0,1,index
+    mov bl, index
+    mov state[bx], 34h            
+    
+    CONVERT 1,1,index
+    mov bl, index
+    mov state[bx], 34h            
+    
+    CONVERT 2,1,index
+    mov bl, index
+    mov state[bx], 34h            
+    
+    CONVERT 3,1,index
+    mov bl, index
+    mov state[bx], 34h            
                 
-    ADDROUNDKEY state, roundKey, rowLen, colLen            
-     
-     
+    CONVERT 0,2,index
+    mov bl, index
+    mov state[bx], 43h            
+    
+    CONVERT 1,2,index
+    mov bl, index
+    mov state[bx], 43h            
+    
+    CONVERT 2,2,index
+    mov bl, index
+    mov state[bx], 43h            
+    
+    CONVERT 3,2,index
+    mov bl, index
+    mov state[bx], 43h
+    
+    CONVERT 0,3,index
+    mov bl, index
+    mov state[bx], 76h            
+    
+    CONVERT 1,3,index
+    mov bl, index
+    mov state[bx], 76h            
+    
+    CONVERT 2,3,index
+    mov bl, index
+    mov state[bx], 76h            
+    
+    CONVERT 3,3,index
+    mov bl, index
+    mov state[bx], 76h
+    
+    
+    ADDROUNDKEY state, roundKey, rowLen, colLen                          
+              
     mov bx, 0
     mov ax, 0 
-                           
-    
-    
                       
     ; Exit program
+    
     mov ax, 4C00h ; DOS interrupt for program termination
     int 21h       ; Call DOS interrupt
 main ENDP         ; End of main procedure 
