@@ -24,7 +24,7 @@ state db 32h,88h,31h,0e0h,43h,5ah,31h,37h,0f6h,30h,98h,07h,0a8h,8dh,0a2h,34h
  
 ;;;;;;;;;;;;;;;;;;;; 
 
-roundKey db 0a0h, 88h, 23h, 2ah, 0fah, 54h, 0a3h, 6ch, 0feh, 2ch, 39h, 76h, 17h, 0b1h, 39h, 05h
+roundKey db 2bh, 28h, 0abh, 09h, 7eh, 0aeh, 0f7h, 0cfh, 15h, 0d2h, 15h, 4fh, 16h, 0a6h, 88h, 3ch
 arrLen dw 16 
 indexAddRound db 0
 rowAddRound db -1
@@ -70,7 +70,7 @@ ADDROUNDKEY macro sArr, rkArr, localRowLength, localColumnLength
     ; CX will hold the offset of the sArr, DX will hold the offset of the rkArr
     mov si, offset sArr
     mov di, offset rkArr
-    ;mov col, -1
+    ;mov colAddRound, -1
     outerL:
         inc colAddRound
         mov bl, colAddRound
@@ -186,21 +186,43 @@ main proc
     
     ;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     
+    ADDROUNDKEY state, roundKey, rowLenAddRound, colLenAddRound 
+
+    
     SUBBYTES state
                                                             
     SHIFTROWS state
     
     call MixColumns 
                    
-    ADDROUNDKEY state, roundKey, rowLenAddRound, colLenAddRound 
-                              
+        ;special step
+    mov roundKey[0],  0a0h
+    mov roundKey[1],  088h
+    mov roundKey[2],  023h
+    mov roundKey[3],  02ah
+    mov roundKey[4],  0fah
+    mov roundKey[5],  054h
+    mov roundKey[6],  0a3h
+    mov roundKey[7],  06ch
+    mov roundKey[8],  0feh
+    mov roundKey[9],  02ch
+    mov roundKey[10], 039h
+    mov roundKey[11], 076h
+    mov roundKey[12], 017h
+    mov roundKey[13], 0b1h
+    mov roundKey[14], 039h
+    mov roundKey[15], 05h
+    
+    
+    ADDROUNDKEY state, roundKey, rowLenAddRound, colLenAddRound
+                                  
     SUBBYTES state
     
     SHIFTROWS state         
     
     call MixColumns 
     
-    ADDROUNDKEY state, roundKey, rowLenAddRound, colLenAddRound 
+ 
                                  
     ;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     mov ah, 4ch
