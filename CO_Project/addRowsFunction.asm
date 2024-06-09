@@ -1,12 +1,15 @@
 .model small      ; Define memory model as 'small'
-.stack 1000h       ; Define stack size
+.stack 100h       ; Define stack size
 
 .data 
 
     index db 0
     ; I defined them as 1D array as they overlap when I assign them as 2D arrays
-    state db 16 dup(?)       
-    roundKey db 16 dup (?) 
+    
+    ;state db 16 dup(?)       
+    state db 4h, 0e0h, 48h, 28h, 66h, 0cbh, 0f8h, 06h, 81h, 19h, 0d3h, 26h, 0e5h, 9ah, 7ah, 4ch 
+    ;roundKey db 16 dup (?) 
+    roundKey db 0a0h, 88h, 23h, 2ah, 0fah, 54h, 0a3h, 6ch, 0feh, 2ch, 39h, 76h, 17h, 0b1h, 39h, 05h 
     arrLen dw 16 
     row db -1
     col db -1  
@@ -64,6 +67,7 @@ ADDROUNDKEY macro sArr, rkArr, localRowLength, localColumnLength
     mov si, offset sArr
     mov di, offset rkArr
     
+    ;mov col, -1
     outerL:
         inc col
         mov bl, col
@@ -84,7 +88,7 @@ ADDROUNDKEY macro sArr, rkArr, localRowLength, localColumnLength
             mov bh, 0                                              
             mov al, [si][bx] ; taking value from sArr[row][column] mov [si][index], al
             xor al, [di][bx] ; taking value from rkArr[row][column]
-            mov state[bx], al; store the value into sArr[row][column]
+            mov [si][bx], al; store the value into sArr[row][column]
             jmp innerL    
                 
 endMacro:    
@@ -98,81 +102,8 @@ main PROC
     mov ds, ax    ; Move data segment address from AX to DS
     mov es, ax    ; Move data segment address from AX to ES (if needed)  
   
-    
-        
-            
-    
     ; My Code..........>>>>>
                 
-    
-    FILLARR state,99h, rowLen, colLen
-    FILLARR roundKey, 87h, rowLen, colLen
-                
-    CONVERT 0,0,index, colLen
-    mov bl, index
-    mov state[bx], 29h    
-    
-    CONVERT 1,0,index, colLen
-    mov bl, index
-    mov state[bx], 29h    
-    
-    CONVERT 2,0,index, colLen
-    mov bl, index
-    mov state[bx], 29h    
-    
-    CONVERT 3,0,index, colLen
-    mov bl, index
-    mov state[bx], 29h
-    
-    CONVERT 0,1,index, colLen
-    mov bl, index
-    mov state[bx], 34h    
-    
-    CONVERT 1,1,index, colLen
-    mov bl, index
-    mov state[bx], 34h    
-    
-    CONVERT 2,1,index, colLen
-    mov bl, index
-    mov state[bx], 34h    
-    
-    CONVERT 3,1,index, colLen
-    mov bl, index
-    mov state[bx], 34h    
-                
-    CONVERT 0,2,index, colLen
-    mov bl, index
-    mov state[bx], 43h    
-    
-    CONVERT 1,2,index, colLen
-    mov bl, index
-    mov state[bx], 43h    
-    
-    CONVERT 2,2,index, colLen
-    mov bl, index
-    mov state[bx], 43h    
-    
-    CONVERT 3,2,index, colLen
-    mov bl, index
-    mov state[bx], 43h
-    
-    CONVERT 0,3,index, colLen
-    mov bl, index
-    mov state[bx], 76h    
-    
-    CONVERT 1,3,index, colLen
-    mov bl, index
-    mov state[bx], 76h    
-    
-    CONVERT 2,3,index, colLen
-    mov bl, index
-    mov state[bx], 76h    
-    
-    CONVERT 3,3,index, colLen
-    mov bl, index
-    mov state[bx], 76h
-    
-    
     ;The actual function of addRoundKey
     
     ADDROUNDKEY state, roundKey, rowLen, colLen                          

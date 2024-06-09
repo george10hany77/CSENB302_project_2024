@@ -1,0 +1,18 @@
+.data
+
+res dd 1d
+i db 5d
+
+.code
+
+
+mov ax, WORD PTR res
+
+l1:
+mul i
+mov res[0], ax
+mov res[2], dx
+dec i
+jnz l1
+ret
+
