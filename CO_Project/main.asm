@@ -20,11 +20,11 @@ s_box  DB 63H,7cH,77H,7bH,0f2H,6bH,6fH,0c5H,30H,01H,67H,2bH,0feH,0d7H,0abH,76H
 ;state db 4h, 0e0h, 48h, 28h, 66h, 0cbh, 0f8h, 06h, 81h, 19h, 0d3h, 26h, 0e5h, 9ah, 7ah, 4ch
 
 ;test state  ; INPUT_MSG
-state db 32h,88h,31h,0e0h,43h,5ah,31h,37h,0f6h,30h,98h,07h,0a8h,8dh,0a2h,34h
+state db 6dh,65h,6fh,77h,6dh,65h,6fh,77h,6dh,65h,6fh,77h,6dh,65h,6fh,77h
  
 ;;;;;;;;;;;;;;;;;;;; 
              ; INPUT_KEY
-roundKey db 2bh, 28h, 0abh, 09h, 7eh, 0aeh, 0f7h, 0cfh, 15h, 0d2h, 15h, 4fh, 16h, 0a6h, 88h, 3ch
+roundKey db 69h, 20h, 64h, 6fh, 6eh, 74h, 20h, 65h, 76h, 65h, 6eh, 20h, 6bh, 6eh, 6fh, 77h
 arrLen dw 16 
 indexAddRound db 0
 rowAddRound db -1
@@ -94,9 +94,8 @@ CONVERT MACRO i, j, ans, localColumnLength
 endm 
 
 ADDROUNDKEY macro sArr, rkArr, localRowLength, localColumnLength
-    
+    pusha    
     local outerL, innerL, endMacro ; declare outerL and innerL lables as local
-    pusha
     ; CX will hold the offset of the sArr, DX will hold the offset of the rkArr
     mov si, offset sArr
     mov di, offset rkArr
@@ -388,7 +387,8 @@ main proc
     mov si, offset roundKey
     call readCharacter
     call printHexa
-     
+    
+    xor si, si 
      
     RESETKEY   ; to load the keyArray
     
