@@ -77,6 +77,13 @@ keyArray db 32 dup(0)
 roundConstant db 01h,02h,04h,08h,10h,20h,40h,80h,1bh,36h, 30 dup (0)  
 
 ;;;;;;;;;;;;;;;;;;;;;      
+ 
+textMSG db 'Enter the text: $' 
+keyMSG db 'Enter the Cipher: $' 
+ 
+ 
+;;;;;;;;;;;;;;;;;;;;; 
+ 
                  
 .stack 64 
 .code
@@ -373,6 +380,94 @@ RESETKEY macro
     term:
         popa
 endm  
+
+
+
+
+
+
+
+PRINTHEXA macro inArr
+    pusha
+    local START, term, ADDITION
+    MOV SI,OFFSET inArr
+    MOV DI,16
+    START:
+    MOV AX,0
+    MOV CX,0
+    MOV DX,0
+    MOV BX,0 
+    mov dl,[si]
+    rol dx,12
+    mov cl,dl
+    mov dl,0
+    rol dx,4
+    mov al,dl
+    mov ch,0
+    mov bl,cl
+    mov dl,[HEXA + bx]
+    push ax
+    mov ah,02h
+    int 21h
+    pop ax          
+    mov bl,al
+    mov dl,[HEXA + bx]
+    mov ah,02h
+    int 21h
+    INC COUNT
+    inc ROWCOUNT 
+    inc si
+    MOV Dx," "
+    MOV AH,02H
+    INT 21H
+    CMP ROWCOUNT,4
+    JZ ADDITION
+    CMP COUNT,DI
+    
+    JNZ START
+        
+    JZ term
+    ADDITION:MOV Dx,10
+    MOV ROWCOUNT,0
+    MOV AH,02H
+    INT 21h
+    MOV DX,13
+    MOV AH,02H
+    INT 21H
+    cmp count,di
+    Jnz START 
+    term:
+        mov COUNT, 0 
+        mov ROWCOUNT, 0 
+        popa          
+ENDM
+
+
+READCHARACTER macro inArr
+    pusha
+    local STARTOfRead, ENDreadCharacter
+    MOV CX,16
+    MOV SI,OFFSET inArr
+    STARTOfRead:
+    MOV AH,01H
+    INT 21H
+    MOV [SI],AL
+    inc si 
+    dec cx
+    CMP AL,0D
+    JZ ENDreadCharacter
+    CMP cx,0
+    jnz STARTOfRead 
+         
+    EndreadCharacter :
+    popa
+ENDM
+
+
+
+
+
+
    
 main proc
     
@@ -380,16 +475,64 @@ main proc
     mov ds, ax 
     xor ax, ax
     
-    MOV SI,OFFSET state    
-    call readCharacter
-    call printHexa
+    mov dx, offset textMSG
+    mov ah, 09h
+    int 21h 
     
-    mov si, offset roundKey
-    call readCharacter
-    call printHexa
+    ;Print newline (CR + LF)
+    mov ah, 2
+    mov dl, 13  ; Carriage Return (CR)
+    int 21h
+    mov dl, 10  ; Line Feed (LF)
+    int 21h
     
-    xor si, si 
-     
+    READCHARACTER state
+    
+    ;Print another newline (CR + LF)
+    mov ah, 2
+    mov dl, 13  ; Carriage Return (CR)
+    int 21h
+    mov dl, 10  ; Line Feed (LF)
+    int 21h
+    
+    PRINTHEXA state
+    
+    ;Print another newline (CR + LF)
+    mov ah, 2
+    mov dl, 13  ; Carriage Return (CR)
+    int 21h
+    mov dl, 10  ; Line Feed (LF)
+    int 21h
+    
+    mov dx, offset keyMSG
+    mov ah, 09h
+    int 21h
+    
+    ;Print another newline (CR + LF)
+    mov ah, 2
+    mov dl, 13  ; Carriage Return (CR)
+    int 21h
+    mov dl, 10  ; Line Feed (LF)
+    int 21h
+    
+    READCHARACTER roundKey
+    
+    ;Print another newline (CR + LF)
+    mov ah, 2
+    mov dl, 13  ; Carriage Return (CR)
+    int 21h
+    mov dl, 10  ; Line Feed (LF)
+    int 21h
+    
+    PRINTHEXA roundKey
+    
+    ;Print another newline (CR + LF)
+    mov ah, 2
+    mov dl, 13  ; Carriage Return (CR)
+    int 21h
+    mov dl, 10  ; Line Feed (LF)
+    int 21h    
+    
     RESETKEY   ; to load the keyArray
     
     ;;;;;;;;;;;;;  FIRST TIME  ;;;;;;;;;;;;;;;
@@ -514,7 +657,7 @@ main proc
     ADDROUNDKEY state, roundKey, rowLenAddRound, colLenAddRound
     ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     
-    call printHexa
+    PRINTHEXA state
                                  
     ;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     mov ah, 4ch
@@ -722,85 +865,85 @@ endp
 
 
 
-printHexa PROC
-    pusha
-    MOV SI,OFFSET state
-    MOV DI,16
-    START:
-    MOV AX,0
-    MOV CX,0
-    MOV DX,0
-    MOV BX,0 
-    mov dl,[si]
-    rol dx,12
-    mov cl,dl
-    mov dl,0
-    rol dx,4
-    mov al,dl
-    mov ch,0
-    mov bl,cl
-    mov dl,[HEXA + bx]
-    push ax
-    mov ah,02h
-    int 21h
-    pop ax          
-    mov bl,al
-    mov dl,[HEXA + bx]
-    mov ah,02h
-    int 21h
-    INC COUNT
-    inc ROWCOUNT 
-    inc si
-    MOV Dx," "
-    MOV AH,02H
-    INT 21H
-    CMP ROWCOUNT,4
-    JZ ADDITION
-    CMP COUNT,DI
-    
-    
-    
-    JNZ START
-    
-    
-    
-    JZ term
-    ADDITION:MOV Dx,10
-    MOV ROWCOUNT,0
-    MOV AH,02H
-    INT 21h
-    MOV DX,13
-    MOV AH,02H
-    INT 21H
-    cmp count,di
-    Jnz START 
-    term:
-        mov COUNT, 0 
-        mov ROWCOUNT, 0 
-        popa 
-        RET 
-   printHexa ENDP
-
-
-readCharacter PROC
-    pusha
-    MOV CX,16
-    MOV SI,OFFSET state
-    STARTOfRead:
-    MOV AH,01H
-    INT 21H
-    MOV [SI],AL
-    inc si 
-    dec cx
-    CMP AL,0D
-    JZ ENDreadCharacter
-    CMP cx,0
-    jnz STARTOfRead 
-     
-     
-    EndreadCharacter :
-    popa
-    RET
-readCharacter ENDP
+;printHexa PROC
+;    pusha
+;    MOV SI,OFFSET state
+;    MOV DI,16
+;    START:
+;    MOV AX,0
+;    MOV CX,0
+;    MOV DX,0
+;    MOV BX,0 
+;    mov dl,[si]
+;    rol dx,12
+;    mov cl,dl
+;    mov dl,0
+;    rol dx,4
+;    mov al,dl
+;    mov ch,0
+;    mov bl,cl
+;    mov dl,[HEXA + bx]
+;    push ax
+;    mov ah,02h
+;    int 21h
+;    pop ax          
+;    mov bl,al
+;    mov dl,[HEXA + bx]
+;    mov ah,02h
+;    int 21h
+;    INC COUNT
+;    inc ROWCOUNT 
+;    inc si
+;    MOV Dx," "
+;    MOV AH,02H
+;    INT 21H
+;    CMP ROWCOUNT,4
+;    JZ ADDITION
+;    CMP COUNT,DI
+;    
+;    
+;    
+;    JNZ START
+;    
+;    
+;    
+;    JZ term
+;    ADDITION:MOV Dx,10
+;    MOV ROWCOUNT,0
+;    MOV AH,02H
+;    INT 21h
+;    MOV DX,13
+;    MOV AH,02H
+;    INT 21H
+;    cmp count,di
+;    Jnz START 
+;    term:
+;        mov COUNT, 0 
+;        mov ROWCOUNT, 0 
+;        popa 
+;        RET 
+;   printHexa ENDP
+;
+;
+;readCharacter PROC
+;    pusha
+;    MOV CX,16
+;    MOV SI,OFFSET state
+;    STARTOfRead:
+;    MOV AH,01H
+;    INT 21H
+;    MOV [SI],AL
+;    inc si 
+;    dec cx
+;    CMP AL,0D
+;    JZ ENDreadCharacter
+;    CMP cx,0
+;    jnz STARTOfRead 
+;     
+;     
+;    EndreadCharacter :
+;    popa
+;    RET
+;readCharacter ENDP
  
       

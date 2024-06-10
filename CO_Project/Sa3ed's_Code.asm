@@ -76,10 +76,11 @@ org 100h
         mov ax,@data
         mov DS,ax
         MOV SI,OFFSET ARRAYTEST2
-        ;CALL readCharacter
-        ;call PRINTHEXA
         
-        CALL MixColumns     
+        CALL readCharacter
+        call PRINTHEXA
+        
+        ;CALL MixColumns     
         
         ;call readNumber
         
@@ -101,6 +102,7 @@ ret
 ;this method does something special it reads 3 numbers by 3 numbers
 ;that the first number falls in hundreds and the second falls in tens and then the last falls in ones
 readNumber PROC
+    pusha
     MOV CX,16
     MOV SI,OFFSET INPUT
     ;OUTER LOOP
@@ -127,11 +129,13 @@ readNumber PROC
     MOV MULTIPLIER,AL
     INC SI 
     LOOP OUTER
+    popa
     ret
 readNumber ENDP
 
 
 readCharacter PROC
+    pusha
     MOV CX,16
     MOV SI,OFFSET INPUT
     STARTOfRead:
@@ -147,7 +151,7 @@ readCharacter PROC
      
      
     EndreadCharacter :
-    
+    popa
     RET
 readCharacter ENDP
     
@@ -155,8 +159,9 @@ readCharacter ENDP
 
 
 PRINTHEXA PROC 
-         MOV SI,OFFSET INPUT
-         MOV DI,16
+     pusha
+     MOV SI,OFFSET INPUT
+     MOV DI,16
      START:
      MOV AX,0
      MOV CX,0
@@ -195,7 +200,7 @@ PRINTHEXA PROC
      
      
      
-     JZ end
+     JZ term
      ADDITION:MOV Dx,10
      MOV ROWCOUNT,0
      MOV AH,02H
@@ -206,7 +211,7 @@ PRINTHEXA PROC
      cmp count,di
      Jnz START
      ;start: 
-     end:
+     term:
      ;rol dx, 12
      ;mov bl,dl
      ;and bl,0FH
@@ -216,7 +221,7 @@ PRINTHEXA PROC
      ;int 21H
      ;pop dx 
      ;loop start
-    
+    popa
     RET 
     PRINTHEXA ENDP
 
