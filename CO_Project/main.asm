@@ -19,11 +19,11 @@ s_box  DB 63H,7cH,77H,7bH,0f2H,6bH,6fH,0c5H,30H,01H,67H,2bH,0feH,0d7H,0abH,76H
 
 ;state db 4h, 0e0h, 48h, 28h, 66h, 0cbh, 0f8h, 06h, 81h, 19h, 0d3h, 26h, 0e5h, 9ah, 7ah, 4ch
 
-;test state
+;test state  ; INPUT_MSG
 state db 32h,88h,31h,0e0h,43h,5ah,31h,37h,0f6h,30h,98h,07h,0a8h,8dh,0a2h,34h
  
 ;;;;;;;;;;;;;;;;;;;; 
-
+             ; INPUT_KEY
 roundKey db 2bh, 28h, 0abh, 09h, 7eh, 0aeh, 0f7h, 0cfh, 15h, 0d2h, 15h, 4fh, 16h, 0a6h, 88h, 3ch
 arrLen dw 16 
 indexAddRound db 0
@@ -45,7 +45,24 @@ MIXINNERCOUNTER DB 0
 MIXOUTERCOUNTER DB 0
 COLUMNDONE DB 0
 NUMCOLUMN DW 0
+
+;;;;;;;;;;;;;;;;;;;;;
+
+HEXA DB "0123456789ABCDEF" ;used for print hexa in case of a number bigger than 10 since the compiler reads
+                           ;each number individually
+                                       
+COUNT DW 0   ;USED IN THE PRINTHEXA PROC FOR THE LOOP 
+    
+    
+ROWCOUNT DB 0  ;USED IN THE PRINTHEXA TO INDCATE WHEN THE ROW ENDS AND STARTS A NEW ROW
       
+;;;;;;;;;;;;;;;;;;;;; 
+
+
+TOTAL db 0 ;A VARIABLE FOR READ NUMBER
+MULTIPLIER DB 100 ; used for readNumber    
+
+
 ;;;;;;;;;;;;;;;;;;;;;
 
 test0 db 4 dup(0)
@@ -54,7 +71,8 @@ test2 db 4 dup(0)
 
 roundNum db 0
   
-keyArray db 2bh,28h,0abh,09h,4 dup(7h) ,7eh,0aeh,0f7h,0cfh,4 dup(8h),15h,0d2h,15h,4fh,4 dup(9h),16h,0a6h,088h,3ch, 4 dup(10h)
+;keyArray db 2bh,28h,0abh,09h,4 dup(7h) ,7eh,0aeh,0f7h,0cfh,4 dup(8h),15h,0d2h,15h,4fh,4 dup(9h),16h,0a6h,088h,3ch, 4 dup(10h)
+keyArray db 32 dup(0)
 
 roundConstant db 01h,02h,04h,08h,10h,20h,40h,80h,1bh,36h, 30 dup (0)  
 
@@ -362,7 +380,17 @@ main proc
     mov ax, @data
     mov ds, ax 
     xor ax, ax
-   
+    
+    MOV SI,OFFSET state    
+    call readCharacter
+    call printHexa
+    
+    mov si, offset roundKey
+    call readCharacter
+    call printHexa
+     
+     
+    RESETKEY   ; to load the keyArray
     
     ;;;;;;;;;;;;;  FIRST TIME  ;;;;;;;;;;;;;;;
     
@@ -484,7 +512,9 @@ main proc
     inc roundNum                                                                                      ;10
        
     ADDROUNDKEY state, roundKey, rowLenAddRound, colLenAddRound
+    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     
+    call printHexa
                                  
     ;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     mov ah, 4ch
@@ -633,6 +663,8 @@ endp
  
  
 updateRoundKey proc 
+    
+    pusha
                                                
     VERTICALSNIPPET keyArray,      8, 0, test0  ; takes a snippet from the provided array and the desired column index and stored in storeArr
                                        
@@ -682,8 +714,93 @@ updateRoundKey proc
      
     RESETKEY 
     
+    popa
+    
     ret 
 endp
    
 
+
+
+printHexa PROC
+    pusha
+    MOV SI,OFFSET state
+    MOV DI,16
+    START:
+    MOV AX,0
+    MOV CX,0
+    MOV DX,0
+    MOV BX,0 
+    mov dl,[si]
+    rol dx,12
+    mov cl,dl
+    mov dl,0
+    rol dx,4
+    mov al,dl
+    mov ch,0
+    mov bl,cl
+    mov dl,[HEXA + bx]
+    push ax
+    mov ah,02h
+    int 21h
+    pop ax          
+    mov bl,al
+    mov dl,[HEXA + bx]
+    mov ah,02h
+    int 21h
+    INC COUNT
+    inc ROWCOUNT 
+    inc si
+    MOV Dx," "
+    MOV AH,02H
+    INT 21H
+    CMP ROWCOUNT,4
+    JZ ADDITION
+    CMP COUNT,DI
+    
+    
+    
+    JNZ START
+    
+    
+    
+    JZ term
+    ADDITION:MOV Dx,10
+    MOV ROWCOUNT,0
+    MOV AH,02H
+    INT 21h
+    MOV DX,13
+    MOV AH,02H
+    INT 21H
+    cmp count,di
+    Jnz START 
+    term:
+        mov COUNT, 0 
+        mov ROWCOUNT, 0 
+        popa 
+        RET 
+   printHexa ENDP
+
+
+readCharacter PROC
+    pusha
+    MOV CX,16
+    MOV SI,OFFSET state
+    STARTOfRead:
+    MOV AH,01H
+    INT 21H
+    MOV [SI],AL
+    inc si 
+    dec cx
+    CMP AL,0D
+    JZ ENDreadCharacter
+    CMP cx,0
+    jnz STARTOfRead 
+     
+     
+    EndreadCharacter :
+    popa
+    RET
+readCharacter ENDP
+ 
       
