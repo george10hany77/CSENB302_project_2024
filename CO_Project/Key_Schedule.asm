@@ -1,10 +1,18 @@
 org 100h
 .data
  
-keyArray db 2bh,28h,0abh,09h,40 dup(7h) ,7eh,0aeh,0f7h,0cfh,40 dup(8h),15h,0d2h,15h,4fh,40 dup(9h),16h,0a6h,088h,3ch, 40 dup(10h)
-tempArrSubKey db 0ffh, 0feh, 0efh, 0eeh
+;keyArray db 2bh,28h,0abh,09h,40 dup(7h) ,7eh,0aeh,0f7h,0cfh,40 dup(8h),15h,0d2h,15h,4fh,40 dup(9h),16h,0a6h,088h,3ch, 40 dup(10h)
+keyArray db 2bh,28h,0abh,09h,4 dup(7h) ,7eh,0aeh,0f7h,0cfh,4 dup(8h),15h,0d2h,15h,4fh,4 dup(9h),16h,0a6h,088h,3ch, 4 dup(10h)
+
+roundKey db 16 dup(0)
+ 
 test0 db 4 dup(0)
-RoundConstant db 01h,02h,04h,08h,10h,20h,40h,80h,1bh,36h, 30 dup (0)  
+test1 db 4 dup(0)
+test2 db 4 dup(0) 
+
+roundNum db 0
+
+roundConstant db 01h,02h,04h,08h,10h,20h,40h,80h,1bh,36h, 30 dup (0)  
 
 s_box  DB 63H,7cH,77H,7bH,0f2H,6bH,6fH,0c5H,30H,01H,67H,2bH,0feH,0d7H,0abH,76H
        DB 0caH,82H,0c9H,7dH,0faH,59H,47H,0f0H,0adH,0d4H,0a2H,0afH,9cH,0a4H,72H,0c0H
@@ -25,7 +33,7 @@ s_box  DB 63H,7cH,77H,7bH,0f2H,6bH,6fH,0c5H,30H,01H,67H,2bH,0feH,0d7H,0abH,76H
  
  
  
-.stack 64
+.stack 256
 .code   
   
   
@@ -64,9 +72,11 @@ CONVERT MACRO i, j, ans, localColumnLength
     pop ax  
 endm
 
-VERTICALSNIPPET macro arr, colIndexVS, storeArr  ;arr is the key schedule. It will store this snippit in the storeArr
-    local l1, term 
+
+;takes a snippet from the provided array and the desired column index and stored in storeArr
+VERTICALSNIPPET macro arr, arrLen, colIndexVS, storeArr  ;arr is the key schedule. It will store this snippit in the storeArr
     pusha ; to save all current data inside the registers
+    local l1, term 
     mov si, 0 
     mov di, offset arr
     mov bp, offset storeArr
@@ -74,8 +84,9 @@ VERTICALSNIPPET macro arr, colIndexVS, storeArr  ;arr is the key schedule. It wi
         cmp si, 4
         jz term    
         
-        mov dx, si
-        CONVERT dl, colIndexVS, cl, 44 ; 44 is the width of the whole key schedule
+        mov dx, si 
+        mov ch, arrLen
+        CONVERT dl, colIndexVS, cl, ch ; arrLen is the width of the whole key schedule
         mov bl, cl
         mov bh, 0 
         mov al, [bx][di]
@@ -86,14 +97,15 @@ VERTICALSNIPPET macro arr, colIndexVS, storeArr  ;arr is the key schedule. It wi
         jmp l1
     term: 
         popa
-        endm    
+endm
+
            
            
    
 
 ADDTOKEYSCHEDULE macro addedArr, colIndex ; takes the array with new values of length 4 and the desired column where we want to store the new data in the key schedule
-    local l1, term 
     pusha ; to save all current data inside the registers
+    local l1, term 
     mov si, 0 
     mov di, offset addedArr
     
@@ -102,7 +114,8 @@ ADDTOKEYSCHEDULE macro addedArr, colIndex ; takes the array with new values of l
         jz term    
         
         mov dx, si
-        CONVERT dl, colIndex, cl, 44 ; dl contains the looping index of the added array and cl contains the actual index of the keySchedule
+        ;CONVERT dl, colIndex, cl, 44 ; dl contains the looping index of the added array and cl contains the actual index of the keySchedule
+        CONVERT dl, colIndex, cl, 8 ; dl contains the looping index of the added array and cl contains the actual index of the keySchedule
         mov ch, 0
         mov bx, cx ; now bx has the actual address
         mov bp, dx ; now bp has the looping index
@@ -114,12 +127,13 @@ ADDTOKEYSCHEDULE macro addedArr, colIndex ; takes the array with new values of l
         jmp l1
     term: 
         popa
-        endm     
+endm
+
            
            
 SUBBYTES macro st, len ; takes the state array but the s_box has to be global variable, 'len' is the lenth of 'st' which is the incomming array    
-    local loop1
     pusha
+    local loop1
     mov cx ,len
     Mov si, 0
     mov bp, offset st
@@ -144,43 +158,193 @@ SUBBYTES macro st, len ; takes the state array but the s_box has to be global va
         inc si
         pop cx
         loop loop1  
-popa        
+    popa        
 endm    
          
 
-XOR3ARRS macro arr1, arr2, arr3 , len ; the 3 arrays has to have same length
+XOR2ARRS macro arr1, arr2, len ; The result will be stored at arr1. The 2 arrays has to have same length
     pusha
     local l1, term
-    mov si, 0
+    mov bp, 0
+    mov di, offset arr1
+    mov si, offset arr2
     l1:
-        cmp si, len
+        cmp bp, len
         jz term
         
+        mov al, [bp][si]
+        xor [bp][di], al
         
-        
-        inc si
+        inc bp
         jmp l1
     term:
         popa
-        endm
-    
- 
+endm
+
     
 
 mov ax, @data
 mov ds, ax
 xor ax, ax
 
+ 
+ 
+
+COPYKEYSCHEDULETOROUNDKEY macro startIndex
+    pusha
+    local l1, term, resetIndices, curr
+    mov bp, 0
+    mov cl, startIndex
+    mov ch, 0
+    l1:
+        cmp bp, 16
+        jz term
+        mov dh, startIndex
+        add dh, 4
+        
+        cmp cl, dh  
+        jz resetIndices
+        curr:
+        
+        ;CONVERT ch, cl, bl, 44  ; cl has column current count + start index, ch has row current count
+        CONVERT ch, cl, bl, 8  ; cl has column current count + start index, ch has row current count
+       
+        inc cl
+        mov bh, 0
+        
+        mov dl, keyArray[bx] 
+        mov roundKey[bp], dl
+        
+        inc bp
+        jmp l1
+    resetIndices:
+        mov cl, startIndex
+        inc ch
+        jmp curr    
+    term:
+        popa
+endm 
+
+     
+
+
+RESETKEY macro
+    pusha
+    local l1, term, resetIndices, curr
+    mov bp, 0
+    mov cl, 0
+    mov ch, 0
+    l1:
+        cmp bp, 16
+        jz term
+        
+        cmp cl, 4  
+        jz resetIndices
+        curr:
+        
+        ;CONVERT ch, cl, bl, 44  ; cl has column current count + start index, ch has row current count
+        CONVERT ch, cl, bl, 8  ; cl has column current count + start index, ch has row current count
+       
+        inc cl
+        mov bh, 0
+        
+        mov dl, roundKey[bp]
+        mov keyArray[bx] , dl
+        
+        inc bp
+        jmp l1
+    resetIndices:
+        mov cl, 0
+        inc ch
+        jmp curr    
+    term:
+        popa
+endm
 
 
 
-VERTICALSNIPPET keyArray, 3, tempArrSubKey   ; takes a snippet of the provided array and the desired column index and stored in tempArrSubKey
-VERTICALSNIPPET keyArray, 2, test0   ; takes a snippet of the provided array and the desired column index and stored in tempArrSubKey
-
-;ROTWORD tempArrSubKey
-;SUBBYTES tempArrSubKey, 4  ; takes array and its length "vertical length" which is = to its "length"
-;ADDTOKEYSCHEDULE tempArrSubKey, 5 ; add to key schedule the data in tempArrSubKey at column at index 4
+main proc 
+     
+    ; the rcon parameter will be passed via the stack
+    call updateRoundKey
+    inc roundNum
+    call updateRoundKey
+    inc roundNum
+    call updateRoundKey
   
-mov ah, 4ch
-int 21h
+     
+    mov ah, 4ch
+    int 21h
+    ret
+endp
+
+xor3Snippets proc
+    XOR2ARRS test0, test1, 4
+    XOR2ARRS test0, test2, 4
+    ret 
+endp
+ 
+ 
+updateRoundKey proc 
+                                               
+    VERTICALSNIPPET keyArray,      8, 0, test0  ; takes a snippet from the provided array and the desired column index and stored in storeArr
+                                       
+    VERTICALSNIPPET keyArray,      8, 3, test1  ; takes a snippet from the provided array and the desired column index and stored in storeArr
+     
+    VERTICALSNIPPET roundConstant, 10, roundNum, test2  ; will increase by 1, takes a snippet from the provided array and the desired column index and stored in storeArr
+    
+    ROTWORD test1
+    SUBBYTES test1, 4  ; takes array and its length "vertical length" which is = to its "length"
+     
+    call xor3Snippets
+                            ;round# * 4
+    ADDTOKEYSCHEDULE test0, 4 ; add to key schedule the data in tempArrSubKey at column at index 4
+    
+    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;    
+    
+    VERTICALSNIPPET keyArray, 8, 1, test0       ; takes a snippet from the provided array and the desired column index and stored in storeArr
+    
+    VERTICALSNIPPET keyArray, 8, 4, test1       ; takes a snippet from the provided array and the desired column index and stored in storeArr
+     
+    XOR2ARRS test0, test1, 4
+
+    ADDTOKEYSCHEDULE test0, 5 ; add to key schedule the data in tempArrSubKey at column at index ?
+    
+                    ;;;;;;;;;;;
+    VERTICALSNIPPET keyArray, 8, 2, test0       ; takes a snippet from the provided array and the desired column index and stored in storeArr
+    
+    VERTICALSNIPPET keyArray, 8, 5, test1       ; takes a snippet from the provided array and the desired column index and stored in storeArr
+     
+    XOR2ARRS test0, test1, 4
+
+    ADDTOKEYSCHEDULE test0, 6 ; add to key schedule the data in tempArrSubKey at column at index ?
+    
+                    ;;;;;;;;;;;
+   
+    VERTICALSNIPPET keyArray, 8, 3, test0       ; takes a snippet from the provided array and the desired column index and stored in storeArr
+    
+    VERTICALSNIPPET keyArray, 8, 6, test1       ; takes a snippet from the provided array and the desired column index and stored in storeArr
+     
+    XOR2ARRS test0, test1, 4
+
+    ADDTOKEYSCHEDULE test0, 7 ; add to key schedule the data in tempArrSubKey at column at index ?
+    
+                    ;;;;;;;;;;;
+  
+    COPYKEYSCHEDULETOROUNDKEY 4 ; Will copy the data stored in the key schedule starting from index 4
+     
+    RESETKEY 
+    
+    ret 
+endp
+   
+   
+   
+
+   
+   
+   
+   
+   
 end
+
