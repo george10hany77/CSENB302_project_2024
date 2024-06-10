@@ -34,8 +34,9 @@ CONVERT MACRO i, j, ans, localColumnLength
     mov ans, al  
 endm    
     
-SUBBYTES macro st ; takes the state array but the s_box has to be global variable    
-    mov cx ,16
+SUBBYTES macro st, len ; takes the state array but the s_box has to be global variable "UPDATED"   
+    local loop1
+    mov cx ,len
     Mov si, 0
     mov bp, offset st
     loop1:      
@@ -56,14 +57,40 @@ SUBBYTES macro st ; takes the state array but the s_box has to be global variabl
         mov ax, 0
         inc si
         loop loop1
-    endm
+endm
+
+;SUBBYTES macro st ; takes the state array but the s_box has to be global variable    
+;    local loop1
+;    mov cx ,16
+;    Mov si, 0
+;    mov bp, offset st
+;    loop1:      
+;        ;by doing bitmasking the lower bit "column" will be in the dl, dh will hold "row"
+;        mov al, 0fh
+;        and al, [bp][si]
+;        mov dl, al  
+;        mov al, 0f0h
+;        and al, [bp][si]
+;        mov dh, al
+;        shr dh, 4
+;        
+;        CONVERT dh, dl, index, 16
+;        mov bl, index
+;        mov bh, 0
+;        mov ah, s_box[bx]
+;        mov [bp][si], ah
+;        mov ax, 0
+;        inc si
+;        loop loop1
+;endm
+
          
          
 mov ax, @data
 mov ds, ax
 xor ax, ax
              
-SUBBYTES state
+SUBBYTES state, 16
    
 mov ah, 4ch
 int 21h   

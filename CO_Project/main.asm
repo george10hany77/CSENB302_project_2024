@@ -33,10 +33,6 @@ rowLenAddRound db 4
 colLenAddRound db 4
 
 ;;;;;;;;;;;;;;;;;;;;;
- 
-indexSubByte db 0
-
-;;;;;;;;;;;;;;;;;;;;;
 
 tempCharShR dw 0
 
@@ -56,17 +52,19 @@ NUMCOLUMN DW 0
 ; Helper macro to give it i, j and it transforms it into single coordinate.
 
 CONVERT MACRO i, j, ans, localColumnLength 
+    push ax
     mov al, localColumnLength
     mov ah, i
     mul ah
     add al, j 
-    mov ans, al  
+    mov ans, al
+    pop ax  
 endm
 
 ADDROUNDKEY macro sArr, rkArr, localRowLength, localColumnLength
     
     local outerL, innerL, endMacro ; declare outerL and innerL lables as local
-    
+    pusha
     ; CX will hold the offset of the sArr, DX will hold the offset of the rkArr
     mov si, offset sArr
     mov di, offset rkArr
@@ -99,14 +97,14 @@ endMacro:
         mov indexAddRound, 0
         mov rowAddRound, -1
         mov colAddRound, -1
+        popa
         endm 
     
     
-SUBBYTES macro st ; takes the state array but the s_box has to be global variable    
-    
+SUBBYTES macro st, len ; takes the state array but the s_box has to be global variable, 'len' is the lenth of 'st' which is the incomming array    
     local loop1
-    
-    mov cx ,16
+    pusha
+    mov cx ,len
     Mov si, 0
     mov bp, offset st
     loop1:      
@@ -118,24 +116,25 @@ SUBBYTES macro st ; takes the state array but the s_box has to be global variabl
         and al, [bp][si]
         mov dh, al
         shr dh, 4
+        push cx
         
-        CONVERT dh, dl, indexSubByte, 16 
+        CONVERT dh, dl, cl, 16  ; 16 is the width of the sBox
         
-        mov bl, indexSubByte
+        mov bl, cl
         mov bh, 0
         mov ah, s_box[bx]
         mov [bp][si], ah
         mov ax, 0
         inc si
-        loop loop1
-    ;reset important variables at the end
-    mov indexSubByte, 0    
-        
+        pop cx
+        loop loop1  
+popa        
 endm
 
    
 SHIFtROWS MACRO shRarr
-    local LoopBig, LoopSmall, EN
+    local LoopBig, LoopSmall, EN 
+    pusha
     mov cx, 04h
     mov si, offset shRarr
 LoopBig:
@@ -172,6 +171,7 @@ EN:
     
     ;reset important variables at the end
     mov tempCharShR, 0
+    popa
     
 ENDM
   
@@ -189,7 +189,7 @@ main proc
     ADDROUNDKEY state, roundKey, rowLenAddRound, colLenAddRound 
 
     
-    SUBBYTES state
+    SUBBYTES state, 16  ; '16' is the length of the state 
                                                             
     SHIFTROWS state
     
@@ -216,7 +216,7 @@ main proc
     
     ADDROUNDKEY state, roundKey, rowLenAddRound, colLenAddRound
                                   
-    SUBBYTES state
+    SUBBYTES state, 16  ; '16' is the length of the state
     
     SHIFTROWS state         
     

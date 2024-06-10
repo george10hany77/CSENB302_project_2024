@@ -91,7 +91,10 @@ ADDROUNDKEY macro sArr, rkArr, localRowLength, localColumnLength
             mov [si][bx], al; store the value into sArr[row][column]
             jmp innerL    
                 
-endMacro:    
+endMacro:
+    mov index, 0
+    mov row, -1
+    mov col, -1    
     endm
 
         
