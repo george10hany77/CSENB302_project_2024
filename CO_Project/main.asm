@@ -465,7 +465,39 @@ ENDM
 
 
 
+    
+PRINT_STRING macro str ; prints a string and a new line after it. Give it the affset of the array
+    pusha
+    local l1
+    mov cx, 16
+    mov di, 0
+    mov bx, str
+    l1:
+        mov ah, 2
+        mov dl, [bx][di]
+        int 21h
+        inc di
+        loop l1
+    
+    popa
+endm
 
+READ_STRING_ADD$ macro buffer
+    pusha
+    
+    mov dx, offset buffer
+    mov ah, 0Ah
+    int 21h
+    mov si, offset buffer
+    mov bl, [si][0]  ; as it is only one byte
+    mov bh, 0
+    add bx, si
+    add bx, 2
+    mov [bx], '$'
+    
+    popa
+endm    
+    
 
 
    
@@ -495,7 +527,10 @@ main proc
     mov dl, 10  ; Line Feed (LF)
     int 21h
     
-    PRINTHEXA state
+    ;PRINTHEXA state
+    
+    mov si, offset state
+    PRINT_STRING si
     
     ;Print another newline (CR + LF)
     mov ah, 2
@@ -524,7 +559,11 @@ main proc
     mov dl, 10  ; Line Feed (LF)
     int 21h
     
-    PRINTHEXA roundKey
+    ;PRINTHEXA roundKey
+    
+    
+    mov si, offset roundKey
+    PRINT_STRING si
     
     ;Print another newline (CR + LF)
     mov ah, 2
@@ -657,7 +696,11 @@ main proc
     ADDROUNDKEY state, roundKey, rowLenAddRound, colLenAddRound
     ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     
-    PRINTHEXA state
+    ;PRINTHEXA state
+    
+    
+    mov si, offset state
+    PRINT_STRING si 
                                  
     ;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     mov ah, 4ch
